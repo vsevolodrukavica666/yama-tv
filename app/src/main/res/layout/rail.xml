@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- one wave rail; the parent sits 12dp left of the content, so the rail starts where the zoom room is -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical">
+    <TextView android:id="@+id/railTitle" style="@style/Section" android:layout_marginStart="12dp" />
+    <HorizontalScrollView style="@style/Rail" android:layout_marginStart="0dp">
+        <LinearLayout android:id="@+id/railRow" style="@style/RailRow" />
+    </HorizontalScrollView>
+</LinearLayout>

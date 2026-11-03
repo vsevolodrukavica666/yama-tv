@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent" android:layout_height="match_parent" android:background="@color/bg">
+
+    <ImageView android:id="@+id/backdrop" android:layout_width="match_parent" android:layout_height="match_parent"
+        android:scaleType="centerCrop" />
+    <View android:layout_width="match_parent" android:layout_height="match_parent" android:background="#A6121212" />
+
+    <LinearLayout android:layout_width="match_parent" android:layout_height="match_parent"
+        android:gravity="center_vertical" android:padding="48dp">
+
+        <ImageView android:id="@+id/cover" android:layout_width="300dp" android:layout_height="300dp"
+            android:background="@drawable/round" android:scaleType="centerCrop" android:elevation="16dp"
+            android:src="@drawable/ic_note" android:layout_marginEnd="40dp" />
+
+        <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content"
+            android:layout_weight="1" android:orientation="vertical">
+            <TextView android:id="@+id/source" android:layout_width="wrap_content" android:layout_height="wrap_content"
+                android:textSize="16sp" android:textStyle="bold" android:textColor="@color/focus"
+                android:letterSpacing="0.12" android:textAllCaps="true" android:singleLine="true" />
+            <TextView android:id="@+id/title" android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:layout_marginTop="6dp" android:textSize="38sp" android:textStyle="bold" android:maxLines="2" android:ellipsize="end" />
+            <TextView android:id="@+id/artist" android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:textSize="24sp" android:textColor="#FFCCCCCC" android:singleLine="true" android:ellipsize="end" />
+
+            <ProgressBar android:id="@+id/bar" style="@android:style/Widget.Material.ProgressBar.Horizontal"
+                android:layout_width="match_parent" android:layout_height="6dp" android:layout_marginTop="32dp"
+                android:progressDrawable="@drawable/progress_bar" android:max="1000" />
+            <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="6dp">
+                <TextView android:id="@+id/pos" android:layout_width="0dp" android:layout_height="wrap_content"
+                    android:layout_weight="1" android:textSize="18sp" android:textColor="#FFCCCCCC" />
+                <TextView android:id="@+id/dur" android:layout_width="wrap_content" android:layout_height="wrap_content"
+                    android:textSize="18sp" android:textColor="#FFCCCCCC" />
+            </LinearLayout>
+
+            <LinearLayout android:layout_width="wrap_content" android:layout_height="wrap_content"
+                android:layout_marginTop="20dp" android:gravity="center_vertical">
+                <ImageButton android:id="@+id/dislike" style="@style/Circle" android:src="@drawable/ic_dislike" android:contentDescription="Не нравится" />
+                <ImageButton android:id="@+id/prev" style="@style/Circle" android:src="@drawable/ic_prev" android:contentDescription="Назад" />
+                <ImageButton android:id="@+id/play" style="@style/BigPlay" android:src="@drawable/ic_pause" android:contentDescription="Пауза" />
+                <ImageButton android:id="@+id/next" style="@style/Circle" android:src="@drawable/ic_next" android:contentDescription="Дальше" />
+                <ImageButton android:id="@+id/like" style="@style/Circle" android:src="@drawable/ic_like_off" android:contentDescription="Нравится" />
+                <ImageButton android:id="@+id/trackWave" style="@style/Circle" android:src="@drawable/ic_wave" android:contentDescription="Волна по треку" />
+            </LinearLayout>
+            <TextView android:id="@+id/hint" android:layout_width="wrap_content" android:layout_height="wrap_content"
+                android:layout_marginTop="8dp" android:textSize="16sp" android:textColor="#FFCCCCCC" />
+        </LinearLayout>
+    </LinearLayout>
+</FrameLayout>

@@ -1,0 +1,100 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="bg">#FF121212</color>
+    <color name="card">#FF242424</color>
+    <color name="focus">#FFFFCC00</color>
+    <color name="dim">#FFAAAAAA</color>
+
+    <style name="Yama" parent="android:Theme.Material.NoActionBar">
+        <item name="android:windowBackground">@drawable/bg_art</item>
+        <item name="android:colorAccent">@color/focus</item>
+        <item name="android:textColor">#FFFFFFFF</item>
+    </style>
+
+    <style name="NavBtn">
+        <item name="android:layout_width">56dp</item>
+        <item name="android:layout_height">56dp</item>
+        <item name="android:layout_marginBottom">14dp</item>
+        <item name="android:padding">15dp</item>
+        <item name="android:scaleType">fitCenter</item>
+        <item name="android:background">@drawable/nav_btn</item>
+        <item name="android:tint">@color/nav_icon</item>
+        <item name="android:focusable">true</item>
+    </style>
+
+    <style name="Section">
+        <item name="android:layout_width">wrap_content</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:layout_marginTop">14dp</item>
+        <item name="android:textSize">24sp</item>
+        <item name="android:textStyle">bold</item>
+    </style>
+
+    <style name="Rail">
+        <item name="android:layout_width">match_parent</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:scrollbars">none</item>
+        <!-- the fade hides cards scrolled past the left edge; its length is also the margin a focused card keeps -->
+        <item name="android:requiresFadingEdge">horizontal</item>
+        <item name="android:fadingEdgeLength">32dp</item>
+        <item name="android:layout_marginStart">-12dp</item>
+    </style>
+
+    <style name="RailRow">
+        <item name="android:layout_width">wrap_content</item>
+        <item name="android:layout_height">wrap_content</item>
+        <!-- the room for the focus zoom has to be inside the row: the rail clips the row to its own bounds -->
+        <item name="android:paddingVertical">14dp</item>
+        <item name="android:paddingStart">12dp</item>
+        <item name="android:paddingEnd">44dp</item>
+        <item name="android:clipToPadding">false</item>
+        <item name="android:clipChildren">false</item>
+    </style>
+
+    <style name="Pill">
+        <item name="android:layout_width">wrap_content</item>
+        <item name="android:layout_height">56dp</item>
+        <item name="android:layout_marginStart">12dp</item>
+        <item name="android:paddingHorizontal">24dp</item>
+        <item name="android:gravity">center_vertical</item>
+        <item name="android:background">@drawable/pill_bg</item>
+        <item name="android:focusable">true</item>
+        <item name="android:clickable">true</item>
+    </style>
+
+    <style name="PillIcon">
+        <item name="android:layout_width">24dp</item>
+        <item name="android:layout_height">24dp</item>
+        <item name="android:layout_marginEnd">10dp</item>
+        <item name="android:duplicateParentState">true</item>
+        <item name="android:tint">@color/on_focus</item>
+    </style>
+
+    <style name="PillText">
+        <item name="android:layout_width">wrap_content</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:textSize">20sp</item>
+        <item name="android:textStyle">bold</item>
+        <item name="android:duplicateParentState">true</item>
+        <item name="android:textColor">@color/on_focus</item>
+    </style>
+
+    <style name="Circle">
+        <item name="android:layout_width">68dp</item>
+        <item name="android:layout_height">68dp</item>
+        <item name="android:layout_margin">6dp</item>
+        <item name="android:padding">18dp</item>
+        <item name="android:scaleType">fitCenter</item>
+        <item name="android:background">@drawable/circle_btn</item>
+        <item name="android:tint">#FFFFFFFF</item>
+        <item name="android:focusable">true</item>
+    </style>
+
+    <style name="BigPlay" parent="Circle">
+        <item name="android:layout_width">96dp</item>
+        <item name="android:layout_height">96dp</item>
+        <item name="android:padding">26dp</item>
+        <item name="android:background">@drawable/play_btn</item>
+        <item name="android:tint">#FF121212</item>
+    </style>
+</resources>

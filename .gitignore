@@ -1,0 +1,10 @@
+.gradle/
+build/
+app/build/
+local.properties
+*.apk
+.kotlin/
+# source art for the app (large AI-generated PNGs); the app uses the webp copies in res/
+art/
+*.jks
+*.keystore

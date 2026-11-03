@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent" android:layout_height="match_parent"
+    android:orientation="vertical" android:paddingHorizontal="48dp" android:paddingTop="32dp">
+
+    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:gravity="center_vertical">
+        <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:orientation="vertical">
+            <TextView android:id="@+id/title" android:layout_width="wrap_content" android:layout_height="wrap_content"
+                android:textSize="36sp" android:textStyle="bold" android:singleLine="true" android:ellipsize="end" />
+            <EditText android:id="@+id/query" android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:hint="Трек или исполнитель" android:textSize="30sp" android:textStyle="bold" android:singleLine="true"
+                android:inputType="text" android:imeOptions="actionSearch" android:backgroundTint="@color/focus"
+                android:textColorHint="#80FFFFFF" android:visibility="gone" />
+            <TextView android:id="@+id/sub" android:layout_width="wrap_content" android:layout_height="wrap_content"
+                android:textSize="18sp" android:textColor="@color/dim" />
+        </LinearLayout>
+        <LinearLayout android:id="@+id/playAll" style="@style/Pill" android:visibility="gone">
+            <ImageView style="@style/PillIcon" android:src="@drawable/ic_play" />
+            <TextView style="@style/PillText" android:text="Слушать" />
+        </LinearLayout>
+        <LinearLayout android:id="@+id/shuffle" style="@style/Pill" android:visibility="gone">
+            <ImageView style="@style/PillIcon" android:src="@drawable/ic_shuffle" />
+            <TextView style="@style/PillText" android:text="Перемешать" />
+        </LinearLayout>
+        <LinearLayout android:id="@+id/wave" style="@style/Pill" android:visibility="gone">
+            <ImageView style="@style/PillIcon" android:src="@drawable/ic_wave" />
+            <TextView style="@style/PillText" android:text="Волна" />
+        </LinearLayout>
+    </LinearLayout>
+
+    <ProgressBar android:id="@+id/progress" android:layout_width="64dp" android:layout_height="64dp"
+        android:layout_gravity="center" android:layout_marginTop="80dp" android:indeterminateTint="@color/focus" />
+
+    <ListView android:id="@+id/list" android:layout_width="match_parent" android:layout_height="match_parent"
+        android:layout_marginTop="16dp" android:listSelector="@android:color/transparent"
+        android:divider="@null" android:dividerHeight="4dp" android:paddingBottom="32dp" android:clipToPadding="false" />
+</LinearLayout>
