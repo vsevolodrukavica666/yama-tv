@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent" android:layout_height="match_parent" android:background="#FF000000">
+
+    <SurfaceView android:id="@+id/video" android:layout_width="match_parent" android:layout_height="match_parent"
+        android:layout_gravity="center" />
+
+    <ProgressBar android:id="@+id/progress" android:layout_width="64dp" android:layout_height="64dp"
+        android:layout_gravity="center" android:indeterminateTint="@color/focus" />
+
+    <!-- title card, fades out a few seconds after each clip starts or a key is pressed -->
+    <LinearLayout android:id="@+id/info" android:layout_width="match_parent" android:layout_height="wrap_content"
+        android:layout_gravity="bottom" android:orientation="vertical" android:paddingHorizontal="64dp"
+        android:paddingTop="80dp" android:paddingBottom="48dp" android:background="@drawable/ambient_scrim">
+        <TextView android:id="@+id/clipTitle" android:layout_width="wrap_content" android:layout_height="wrap_content"
+            android:textSize="38sp" android:textStyle="bold" android:singleLine="true" android:ellipsize="end" />
+        <TextView android:id="@+id/clipArtist" android:layout_width="wrap_content" android:layout_height="wrap_content"
+            android:textSize="24sp" android:textColor="#FFDDDDDD" android:singleLine="true" android:ellipsize="end" />
+        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="16dp"
+            android:text="◀ ▶ — другой клип   ·   OK — пауза" android:textSize="16sp" android:textColor="@color/dim" />
+    </LinearLayout>
+</FrameLayout>

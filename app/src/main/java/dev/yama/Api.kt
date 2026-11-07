@@ -20,6 +20,9 @@ fun img(template: String?, size: Int) =
     template?.let { (if (it.startsWith("http")) it else "https://$it").replace("%%", "${size}x$size") }
 
 class Track(val id: String, val albumId: String?, val title: String, val artists: String, val coverTpl: String?, val durationMs: Long) {
+    /** a live radio station dressed as a track, so the player screens can show it */
+    val isRadio get() = id.startsWith("radio:")
+    val isClip get() = id.startsWith("clip:")
     /** "id:albumId", the form rotor expects */
     val qid get() = if (albumId != null) "$id:$albumId" else id
     fun cover(size: Int = 600) = img(coverTpl, size)
@@ -36,11 +39,20 @@ class Station(val seed: String, val name: String, val header: String, val cover:
 
 class WaveGroup(val title: String, val waves: List<Station>)
 
+/** A Yandex Radio (FM) station; [stream] is its first broadcast, usually the federal one. */
+class Radio(val slug: String, val stream: String, val name: String, val genres: String, val logoTpl: String?)
+
+/** A music video from the clip wave; [playerId] resolves to its streams. */
+class Clip(val id: String, val playerId: String, val title: String, val artists: String, val thumbTpl: String?, val preview: String?, val batchId: String)
+
+class ClipBatch(val session: String, val clips: List<Clip>)
+
 class ApiError(val code: Int, msg: String) : IOException(msg)
 
 /** Unofficial Yandex Music API; endpoints and keys mirror MarshalX/yandex-music-api. */
 object Api {
     private const val BASE = "https://api.music.yandex.net"
+    private const val RADIO = "https://radio.api.music.yandex.ru/radio/v1"
     private const val OAUTH = "https://oauth.yandex.ru"
     private const val CLIENT_ID = "23cabbbdc6cd418abb4b39c32c41195d"
     private const val CLIENT_SECRET = "53bc75238f0c4d08a118e51fe9203300"
@@ -48,6 +60,8 @@ object Api {
     // get-file-info sign key only works together with this client header
     private const val DESKTOP_CLIENT = "YandexMusicDesktopAppWindows/5.95.0"
     private const val SIGN_KEY = "kzqU4XhfCaY6B6JTHODeq5"
+    // the clip wave only answers the TV app
+    private const val TV_CLIENT = "YandexMusicAndroidTVKPHD/2.256.1"
 
     lateinit var prefs: SharedPreferences
     var token: String?
@@ -220,6 +234,92 @@ object Api {
             Album(it.get("id").toString(), it.optString("title"), names(it), it.optInt("year"), it.str("coverUri"))
         }
         return artists + playable(results("tracks")) + albums + results("playlists").take(6).map(::playlist)
+    }
+
+    // the radio catalog is public, no token needed
+    private fun radio(path: String) = http(RADIO + path, auth = false)
+    private fun enc(s: String) = URLEncoder.encode(s, "UTF-8")
+
+    private fun station(j: JSONObject) = j.optJSONArray("streams")?.optJSONObject(0)?.let { s ->
+        Radio(j.getString("slug"), s.getString("slug"), j.optString("name"),
+            j.optJSONArray("genres")?.objects()?.joinToString(", ") { it.optString("name") }.orEmpty(), j.optJSONObject("cardInfo")?.str("logo"))
+    }
+
+    fun radioGenres() = radio("/genres").getJSONArray("genres").objects().map { it.getString("slug") to it.getString("name") }
+
+    /** Stations of one genre, or all of them (~280, in pages of 50). */
+    fun radios(genre: String?): List<Radio> {
+        val all = ArrayList<JSONObject>()
+        if (genre != null) all += radio("/genres/${enc(genre)}/stations?userRegion=").getJSONArray("stations").objects()
+        else {
+            var from: String? = null
+            do {
+                val j = radio("/stations?userRegion=&limit=50" + (from?.let { "&continueFrom=" + enc(it) } ?: ""))
+                all += j.getJSONArray("stations").objects()
+                from = j.str("continueFrom")
+            } while (j.optBoolean("hasNext") && from != null)
+        }
+        // the API lists them alphabetically; the most listened ones first is what people look for
+        return all.sortedByDescending { it.optJSONObject("listeners")?.optInt("count") ?: 0 }.mapNotNull(::station)
+    }
+
+    /** The song on air now, as the station's track; the bare station when it isn't saying (ads, talk). */
+    fun onAir(r: Radio): Track {
+        val song = radio("/stations/${enc(r.slug)}/streams/${enc(r.stream)}/widgets").optJSONArray("widgets")?.objects()
+            ?.firstOrNull { it.optString("type") == "music_track" }?.optJSONObject("track")
+        return if (song == null) Track("radio:${r.slug}", null, r.name, r.genres, r.logoTpl, 0)
+        else Track("radio:${r.slug}", null, song.optString("title"), song.optString("artist"), song.str("yandexCover") ?: r.logoTpl, 0)
+    }
+
+    fun radioUrl(r: Radio) = radio("/stations/${enc(r.slug)}/streams/${enc(r.stream)}/url").getString("url")
+
+    private fun clips(session: String, r: JSONObject) = ClipBatch(session, r.optJSONArray("list")?.objects().orEmpty().mapNotNull { row ->
+        if (row.optString("type", "clip") != "clip") return@mapNotNull null
+        val d = row.optJSONObject("data") ?: row
+        d.str("clipId")?.let { Clip(it, d.optString("playerId"), d.optString("title"), names(d), d.str("thumbnail"), d.str("previewUrl"), r.optString("batchId")) }
+    })
+
+    private fun postTv(path: String, body: JSONObject) = http(BASE + path, body.toString(), json = true, client = TV_CLIENT).getJSONObject("result")
+
+    fun clipsStart(): ClipBatch {
+        val r = postTv("/rotor/combined/session/new", JSONObject().put("supportedTypes", JSONArray().put("clip")).put("queue", JSONArray()))
+        return clips(r.getString("sessionId"), r)
+    }
+
+    fun clipsMore(session: String, seen: List<Clip>) = clips(session, postTv(
+        "/rotor/combined/session/${enc(session)}/next",
+        JSONObject().put("queue", JSONArray(seen.takeLast(40).map { JSONObject().put("type", "clip").put("id", it.id) })),
+    ))
+
+    /** Tells the clip wave what was watched or skipped, so it learns; no [c] means the queue just started. */
+    fun clipFeedback(session: String, c: Clip?, type: String, playedSec: Double? = null) {
+        val ev = JSONObject().put("type", type).put("timestamp", iso())
+        if (c == null) ev.put("from", "YandexMusicAndroidTVKPHD") else ev.put("playable", JSONObject().put("type", "clip").put("id", c.id))
+        playedSec?.let { ev.put("totalPlayedSeconds", it) }
+        val body = JSONObject().put("event", ev)
+        c?.let { body.put("batchId", it.batchId) }
+        http("$BASE/rotor/session/${enc(session)}/feedback", body.toString(), json = true, client = TV_CLIENT)
+    }
+
+    /** A free (non-DRM) stream of the clip as url to mime type, else its preview; null if neither. */
+    fun clipUrl(c: Clip): Pair<String, String?>? {
+        val content = runCatching {
+            http("https://frontend.vh.yandex.ru/player/${enc(c.playerId)}.json?service=ya-music&from=YandexMusicAndroidTVKPHD", client = TV_CLIENT)
+                .let { it.optJSONObject("content") ?: it.optJSONObject("result")?.optJSONObject("content") }
+        }.getOrNull()
+        val streams = (content?.optJSONObject("actual_episode")?.optJSONArray("streams")?.objects().orEmpty() +
+            content?.optJSONArray("streams")?.objects().orEmpty())
+            .filter { (it.optJSONObject("drmConfig") ?: it.optJSONObject("drm_config"))?.length() ?: 0 == 0 && it.str("url") != null }
+        // HLS first; DASH would need another player module
+        val hls = streams.firstOrNull { "hls" in it.optString("stream_type").lowercase() || ".m3u8" in it.optString("url") }
+        val plain = streams.firstOrNull { "dash" !in it.optString("stream_type").lowercase() && ".mpd" !in it.optString("url") }
+        fun https(u: String) = if (u.startsWith("//")) "https:$u" else u
+        return when {
+            hls != null -> https(hls.getString("url")) to androidx.media3.common.MimeTypes.APPLICATION_M3U8
+            plain != null -> https(plain.getString("url")) to null
+            c.preview != null -> https(c.preview) to null
+            else -> null
+        }
     }
 
     fun waveMore(session: String, queue: List<Track>) = batch(

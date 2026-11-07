@@ -28,6 +28,7 @@
         <activity android:name=".LoginActivity" />
         <activity android:name=".ListActivity" />
         <activity android:name=".PlayerActivity" android:launchMode="singleTop" />
+        <activity android:name=".ClipActivity" android:launchMode="singleTop" />
 
         <service
             android:name=".PlaybackService"

@@ -29,7 +29,7 @@ class MainActivity : Activity() {
     private val tick = object : Runnable {
         override fun run() {
             val p = Playback.player
-            val d = p.duration.takeIf { it > 0 } ?: 0
+            val d = if (Playback.current?.isRadio == true) 0 else p.duration.takeIf { it > 0 } ?: 0
             findViewById<ProgressBar>(R.id.nowBar).progress = if (d > 0) (p.currentPosition * 1000 / d).toInt() else 0
             main.postDelayed(this, 1000)
         }
@@ -59,6 +59,11 @@ class MainActivity : Activity() {
         findViewById<View>(R.id.navPlaylists).setOnClickListener { openList("playlists") }
         findViewById<View>(R.id.navSettings).setOnClickListener { settings() }
         findViewById<View>(R.id.searchBtn).apply { setOnClickListener { openList("search") }; zoomOnFocus() }
+        findViewById<View>(R.id.clipsBtn).apply {
+            setOnClickListener { startActivity(Intent(this@MainActivity, ClipActivity::class.java)) }
+            setOnFocusChangeListener { _, has -> if (has) setAmbient(null) }
+            zoomOnFocus()
+        }
         now.setOnClickListener { openPlayer() }
         now.zoomOnFocus(1.03f)
         findViewById<View>(R.id.nowCover).rounded()
@@ -66,6 +71,7 @@ class MainActivity : Activity() {
 
         bg({ Api.likedIds().take(30).let { if (it.isEmpty()) emptyList() else Api.tracks(it) } }) { showLikes(it) }
         bg({ Api.waves() }, {}) { showWaves(it) }
+        bg({ Api.radioGenres() }, {}) { showRadio(it) }
         bg({ Api.playlists() }, {}) { showPlaylists(it) }
     }
 
@@ -158,6 +164,43 @@ class MainActivity : Activity() {
         }
     }
 
+    private fun showRadio(genres: List<Pair<String, String>>) {
+        val box = findViewById<LinearLayout>(R.id.radio)
+        val rail = layoutInflater.inflate(R.layout.rail, box, false)
+        rail.findViewById<TextView>(R.id.railTitle).text = "Радио"
+        val row = rail.findViewById<LinearLayout>(R.id.railRow)
+        // the API lists genres in no useful order, so bring the common ones forward
+        val top = listOf("Поп", "Рок", "Танцевальная", "Хип-хоп", "Электронная", "Русский рок", "Шансон", "Ретро", "Джаз", "Чиллаут")
+        val sorted = genres.sortedBy { top.indexOf(it.second).let { i -> if (i < 0) top.size else i } }
+        val colors = longArrayOf(0xFF7B3FE4, 0xFFD6336C, 0xFF1C7ED6, 0xFF2B9348, 0xFFE8590C, 0xFFC92A2A, 0xFF0B8A8A, 0xFF5F3DC4, 0xFFAE3EC9, 0xFF3B5BDB)
+            .map { it.toInt() }
+        val dp = resources.displayMetrics.density
+        for ((i, genre) in (listOf(null to "Все станции") + sorted).withIndex()) {
+            val (slug, name) = genre
+            val art = card(row, 200, 120, inside = name) {
+                startActivity(Intent(this, ListActivity::class.java).putExtra("mode", "radio").putExtra("genre", slug).putExtra("title", "Радио · $name"))
+            }
+            val frame = art.parent as View
+            val ink = if (i == 0) 0xFF121212.toInt() else android.graphics.Color.WHITE
+            frame.backgroundTintList = ColorStateList.valueOf(if (i == 0) getColor(R.color.focus) else colors[(i - 1) % colors.size])
+            frame.findViewById<TextView>(R.id.inside).apply {
+                (layoutParams as android.widget.FrameLayout.LayoutParams).gravity = android.view.Gravity.BOTTOM or android.view.Gravity.START
+                textSize = 24f
+                setTextColor(ink)
+                setShadowLayer(0f, 0f, 0f, 0)
+            }
+            // a big faint radio glyph peeking out of the corner
+            art.setImageResource(R.drawable.ic_radio)
+            art.imageTintList = ColorStateList.valueOf(ink)
+            art.alpha = 0.22f
+            art.scaleType = ImageView.ScaleType.FIT_END
+            art.setPadding((110 * dp).toInt(), (20 * dp).toInt(), 0, 0)
+            art.translationX = 18 * dp
+            art.translationY = 14 * dp
+        }
+        box.addView(rail)
+    }
+
     private fun showPlaylists(lists: List<Playlist>) {
         if (lists.isEmpty()) return
         findViewById<View>(R.id.playlistsTitle).visibility = View.VISIBLE
@@ -183,7 +226,8 @@ class MainActivity : Activity() {
     }
 
     private fun openList(mode: String) = startActivity(Intent(this, ListActivity::class.java).putExtra("mode", mode))
-    private fun openPlayer() = startActivity(Intent(this, PlayerActivity::class.java))
+    private fun openPlayer() =
+        startActivity(Intent(this, if (Playback.current?.isClip == true) ClipActivity::class.java else PlayerActivity::class.java))
 
     private fun settings() {
         AlertDialog.Builder(this)

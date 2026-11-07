@@ -48,11 +48,19 @@
                             android:shadowColor="#99000000" android:shadowRadius="16" />
                         <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
                             android:text="Музыка под твоё настроение" android:textSize="22sp" android:textColor="#FFDDDDDD" />
-                        <LinearLayout android:id="@+id/waveBtn" style="@style/Pill"
-                            android:layout_height="64dp" android:layout_marginStart="0dp" android:layout_marginTop="22dp"
-                            android:paddingHorizontal="30dp" android:background="@drawable/pill_primary">
-                            <ImageView style="@style/PillIcon" android:src="@drawable/ic_play" android:tint="#FF121212" />
-                            <TextView style="@style/PillText" android:text="Слушать" android:textSize="22sp" android:textColor="#FF121212" />
+                        <LinearLayout android:layout_width="wrap_content" android:layout_height="wrap_content"
+                            android:layout_marginTop="22dp" android:clipChildren="false" android:clipToPadding="false">
+                            <LinearLayout android:id="@+id/waveBtn" style="@style/Pill"
+                                android:layout_height="64dp" android:layout_marginStart="0dp"
+                                android:paddingHorizontal="30dp" android:background="@drawable/pill_primary">
+                                <ImageView style="@style/PillIcon" android:src="@drawable/ic_play" android:tint="#FF121212" />
+                                <TextView style="@style/PillText" android:text="Слушать" android:textSize="22sp" android:textColor="#FF121212" />
+                            </LinearLayout>
+                            <LinearLayout android:id="@+id/clipsBtn" style="@style/Pill"
+                                android:layout_height="64dp" android:layout_marginStart="20dp" android:paddingHorizontal="30dp">
+                                <ImageView style="@style/PillIcon" android:src="@drawable/ic_video" />
+                                <TextView style="@style/PillText" android:text="Клипы" android:textSize="22sp" />
+                            </LinearLayout>
                         </LinearLayout>
                     </LinearLayout>
                 </FrameLayout>
@@ -64,6 +72,8 @@
 
                 <!-- personal waves: a titled rail per group, filled from code; shifted left so rails keep the zoom room -->
                 <LinearLayout android:id="@+id/waves" android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:orientation="vertical" android:layout_marginStart="-12dp" />
+                <LinearLayout android:id="@+id/radio" android:layout_width="match_parent" android:layout_height="wrap_content"
                     android:orientation="vertical" android:layout_marginStart="-12dp" />
 
                 <TextView android:id="@+id/playlistsTitle" style="@style/Section" android:text="Плейлисты" android:visibility="gone" />

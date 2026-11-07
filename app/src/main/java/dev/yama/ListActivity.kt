@@ -34,18 +34,20 @@ class ListActivity : Activity() {
                 is Playlist -> Triple(r.title, plural(r.count, "трек", "трека", "треков"), "")
                 is Artist -> Triple(r.name, "Исполнитель", "")
                 is Album -> Triple(r.title, listOfNotNull("Альбом", r.artists, r.year.takeIf { it > 0 }).joinToString(" · "), "")
+                is Radio -> Triple(r.name, r.genres, "")
                 else -> Triple("", "", "")
             }
             v.findViewById<TextView>(R.id.line1).text = a
             v.findViewById<TextView>(R.id.line2).apply { text = b; visibility = if (b.isEmpty()) View.GONE else View.VISIBLE }
             v.findViewById<TextView>(R.id.right).text = c
-            val playing = r is Track && r.id == Playback.current?.id
+            val playing = r is Track && r.id == Playback.current?.id || r is Radio && "radio:${r.slug}" == Playback.current?.id
             v.findViewById<View>(R.id.playing).visibility = if (playing) View.VISIBLE else View.GONE
             val url = when (r) {
                 is Track -> r.cover(200)
                 is Playlist -> img(r.coverTpl, 200)
                 is Artist -> img(r.coverTpl, 200)
                 is Album -> img(r.coverTpl, 200)
+                is Radio -> img(r.logoTpl, 200)
                 else -> null
             }
             Covers.into(v.findViewById<ImageView>(R.id.cover), url, if (r is Playlist) R.drawable.ic_playlist else R.drawable.ic_note)
@@ -68,6 +70,10 @@ class ListActivity : Activity() {
                 is Artist -> open("artist", r.name).putExtra("id", r.id).let(::startActivity)
                 is Album -> open("album", r.title).putExtra("id", r.id).let(::startActivity)
                 is Playlist -> open("playlist", r.title).putExtra("owner", r.owner).putExtra("kind", r.kind).let(::startActivity)
+                is Radio -> bg({ Api.radioUrl(r) }) { url ->
+                    Playback.playRadio(this, r, url)
+                    startActivity(Intent(this, PlayerActivity::class.java))
+                }
             }
         }
 
@@ -100,6 +106,7 @@ class ListActivity : Activity() {
             "playlists" -> bg({ Api.playlists() }) { show(it) }
             "artist" -> bg({ Api.artistTracks(id) }) { show(it) }
             "album" -> bg({ Api.albumTracks(id) }) { show(it) }
+            "radio" -> bg({ Api.radios(intent.getStringExtra("genre")) }) { show(it) }
             else -> bg({ Api.playlistTracks(intent.getStringExtra("owner")!!, intent.getStringExtra("kind")!!) }) { show(it) }
         }
     }
@@ -168,6 +175,7 @@ class ListActivity : Activity() {
         findViewById<TextView>(R.id.sub).text = when {
             mode == "search" -> ""
             rows.firstOrNull() is Playlist -> plural(n, "плейлист", "плейлиста", "плейлистов")
+            rows.firstOrNull() is Radio -> plural(n, "станция", "станции", "станций")
             else -> plural(n, "трек", "трека", "треков")
         }
         if (mode != "search" && rows.firstOrNull() is Track) for (id in intArrayOf(R.id.playAll, R.id.shuffle)) findViewById<View>(id).visibility = View.VISIBLE

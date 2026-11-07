@@ -116,6 +116,10 @@ class PlayerActivity : Activity() {
         like.setImageResource(if (liked) R.drawable.ic_like else R.drawable.ic_like_off)
         like.imageTintList = ColorStateList.valueOf(getColor(if (liked) R.color.focus else android.R.color.white))
         dislike.visibility = if (Playback.isWave) View.VISIBLE else View.GONE
+        // radio and clips are not catalog tracks: nothing to like or build a wave from; live radio can't skip either
+        val own = if (t?.isRadio == true || t?.isClip == true) View.GONE else View.VISIBLE
+        for (id in intArrayOf(R.id.like, R.id.trackWave)) findViewById<View>(id).visibility = own
+        for (id in intArrayOf(R.id.prev, R.id.next)) findViewById<View>(id).visibility = if (t?.isRadio == true) View.GONE else View.VISIBLE
         val url = t?.cover(600)
         if (url != coverUrl) {
             coverUrl = url
@@ -131,10 +135,12 @@ class PlayerActivity : Activity() {
     }
 
     private fun progress() {
-        val d = p.duration.takeIf { it > 0 } ?: Playback.current?.durationMs ?: 0
+        val live = Playback.current?.isRadio == true
+        // a live stream's "duration" is just its buffer window, so show no progress at all
+        val d = if (live) 0 else p.duration.takeIf { it > 0 } ?: Playback.current?.durationMs ?: 0
         val at = p.currentPosition
         bar.progress = if (d > 0) (at * 1000 / d).toInt() else 0
-        pos.text = fmt(at)
-        dur.text = fmt(d)
+        pos.text = if (live) "" else fmt(at)
+        dur.text = if (live) "Эфир" else fmt(d)
     }
 }

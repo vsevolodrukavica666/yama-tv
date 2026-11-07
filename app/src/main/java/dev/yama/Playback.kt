@@ -30,6 +30,12 @@ object Playback {
     private var wave: Api.Batch? = null
     private var waveLoading = false
     private var errors = 0
+    private var radio: Radio? = null
+
+    /** The clip wave: its session and every clip it handed out, kept here so feedback works from any screen. */
+    var clipSession: String? = null
+        private set
+    val clipsSeen = ArrayList<Clip>()
 
     val isWave get() = wave != null
     /** What is playing, shown above the title: "Моя волна", a playlist name, ... */
@@ -78,9 +84,10 @@ object Playback {
         player.addListener(listener)
     }
 
-    private fun item(t: Track) = MediaItem.Builder()
+    private fun item(t: Track, uri: String = "yama://track/${t.id}", mime: String? = null) = MediaItem.Builder()
         .setMediaId(t.id)
-        .setUri("yama://track/${t.id}")
+        .setUri(uri)
+        .setMimeType(mime)
         .setTag(t)
         .setMediaMetadata(MediaMetadata.Builder().setTitle(t.title).setArtist(t.artists).setArtworkUri(t.cover(400)?.let(Uri::parse)).build())
         .build()
@@ -88,19 +95,66 @@ object Playback {
     fun play(ctx: Context, tracks: List<Track>, index: Int, from: String) {
         wave = null
         source = from
-        start(ctx, tracks, index)
+        start(ctx, tracks.map { item(it) }, index)
     }
 
     fun playWave(ctx: Context, b: Api.Batch, from: String = "Моя волна") {
         wave = b
         source = from
         background { Api.waveFeedback(b, "radioStarted", null) }
-        start(ctx, b.tracks, 0)
+        start(ctx, b.tracks.map { item(it) }, 0)
     }
 
-    private fun start(ctx: Context, tracks: List<Track>, index: Int) {
+    fun playRadio(ctx: Context, r: Radio, url: String) {
+        wave = null
+        source = "Радио · ${r.name}"
+        radio = r
+        start(ctx, listOf(item(Track("radio:${r.slug}", null, r.name, r.genres, r.logoTpl, 0), url)), 0)
+        main.removeCallbacks(onAir)
+        main.post(onAir)
+    }
+
+    /** Polls what the station is playing and swaps it into the item, so every screen and the system show the song. */
+    private val onAir = object : Runnable {
+        override fun run() {
+            val r = radio ?: return
+            if (current?.id != "radio:${r.slug}") return run { radio = null }
+            io.execute {
+                val t = runCatching { Api.onAir(r) }.getOrNull()
+                main.post {
+                    val now = current
+                    if (radio !== r || now?.id != t?.id) return@post
+                    if (t != null && (t.title != now!!.title || t.artists != now.artists)) {
+                        // same uri, so the player swaps the metadata without interrupting the stream
+                        player.replaceMediaItem(player.currentMediaItemIndex, item(t, player.currentMediaItem!!.localConfiguration!!.uri.toString()))
+                    }
+                    main.postDelayed(this, 20_000)
+                }
+            }
+        }
+    }
+
+    fun clipItem(c: Clip, url: String, mime: String?) = item(Track("clip:${c.id}", null, c.title, c.artists, c.thumbTpl, 0), url, mime)
+
+    fun playClips(ctx: Context, b: ClipBatch, items: List<MediaItem>) {
+        wave = null
+        source = "Клипы"
+        clipSession = b.session
+        clipsSeen.clear()
+        clipsSeen += b.clips
+        background { Api.clipFeedback(b.session, null, "combinedQueueStarted") }
+        start(ctx, items, 0)
+    }
+
+    private fun clipFeedback(type: String, t: Track, playedSec: Double? = null) {
+        val s = clipSession ?: return
+        val c = clipsSeen.lastOrNull { "clip:${it.id}" == t.id } ?: return
+        background { Api.clipFeedback(s, c, type, playedSec) }
+    }
+
+    private fun start(ctx: Context, items: List<MediaItem>, index: Int) {
         errors = 0
-        player.setMediaItems(tracks.map(::item), index, 0)
+        player.setMediaItems(items, index, 0)
         player.prepare()
         player.play()
         ctx.startService(Intent(ctx, PlaybackService::class.java))
@@ -128,18 +182,20 @@ object Playback {
 
     private val listener = object : Player.Listener {
         override fun onPositionDiscontinuity(old: Player.PositionInfo, new: Player.PositionInfo, reason: Int) {
-            val w = wave ?: return
             if (reason == Player.DISCONTINUITY_REASON_REMOVE) return // queue replaced, old track belongs to another session
             val prev = old.mediaItem.track ?: return
             if (old.mediaItemIndex == new.mediaItemIndex) return
-            val type = if (reason == Player.DISCONTINUITY_REASON_AUTO_TRANSITION) "trackFinished" else "skip"
+            val auto = reason == Player.DISCONTINUITY_REASON_AUTO_TRANSITION
             val played = old.positionMs / 1000.0
-            background { Api.waveFeedback(w, type, prev, played) }
+            if (prev.isClip) return clipFeedback(if (auto) "playableItemFinished" else "playableItemSkip", prev, played)
+            val w = wave ?: return
+            background { Api.waveFeedback(w, if (auto) "trackFinished" else "skip", prev, played) }
         }
 
         override fun onMediaItemTransition(item: MediaItem?, reason: Int) {
-            val w = wave ?: return
             val t = item.track ?: return
+            if (t.isClip) return clipFeedback("playableItemStarted", t)
+            val w = wave ?: return
             background { Api.waveFeedback(w, "trackStarted", t) }
             if (waveLoading || player.currentMediaItemIndex < player.mediaItemCount - 2) return
             waveLoading = true
@@ -150,7 +206,7 @@ object Playback {
                     waveLoading = false
                     if (b != null && wave?.session == w.session) {
                         wave = b
-                        player.addMediaItems(b.tracks.map(::item))
+                        player.addMediaItems(b.tracks.map { item(it) })
                     }
                 }
             }
